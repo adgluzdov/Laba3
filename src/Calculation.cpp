@@ -14,7 +14,7 @@ double Calculation::Calculate(string input)
     double result = Counting(output);
     return result;
 }
-string Calculation::SetVariables(string input) // ¬вод переменных в выражении
+string Calculation::SetVariables(string input) // ћетод, предоставл€ющий пользователю заполнить переменные числовыми константами (или другими переменными)
 {
     for (int i = 0; i < input.length(); i++) //ƒл€ каждого символа в строке
     {

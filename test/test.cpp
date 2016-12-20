@@ -62,7 +62,7 @@ TEST(Calculation, throw_operator_unknow)
 {
 	ASSERT_ANY_THROW(Calculation().Calculate("3%2"));
 }
-TEST(Calculation, CanCombo_1)
+TEST(Calculation, CanCombo_1)	
 {
 	EXPECT_EQ(Calculation().Calculate("2^(2+1)+3*2"),14);
 }
