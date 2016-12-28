@@ -1,11 +1,19 @@
 #include "Calculation.h"
-#include <stack>
 #include <string>
 #include <cctype>
 #include <iostream>
 #include <math.h>
 using namespace std;
 
+Calculation::Calculation()
+{
+	Vars = new Var;
+	Vars->next = NULL;
+}
+Calculation::~Calculation()
+{
+	delete Vars;
+}
 double Calculation::Calculate(string input)
 {
     string output = SetVariables(input);
@@ -14,14 +22,43 @@ double Calculation::Calculate(string input)
     double result = Counting(output);
     return result;
 }
+void Calculation::addVars(char a, double v)
+{
+	Var* buf = Vars;
+	int ex = 0;
+	while (buf) {
+		if (a == buf->ch) {
+			ex = 1;
+			break;
+		}
+		buf = buf->next;
+	}
+
+	if (ex)
+		buf->val = v;
+	else {
+		Var* newvar = new Var;
+		newvar->ch = a;
+		newvar->val = v;
+		newvar->next = Vars;
+		Vars = newvar;
+	}
+}
 string Calculation::SetVariables(string input) // Метод, предоставляющий пользователю заполнить переменные числовыми константами (или другими переменными)
 {
     for (int i = 0; i < input.length(); i++) //Для каждого символа в строке
     {
-		while(IsVariable(input[i]))
-		{
-			cout<< "Enter "<<input[i]<<" = ";
-			cin >> input[i];
+		if(IsVariable(input[i])){
+			Var* buf = Vars;
+			bool flag = true;
+			while(flag)
+			{
+				if(buf->ch == input[i]){
+					input[i] = buf->val + '0';
+					flag = false;
+				}
+				buf = buf->next;
+			}
 		}
 	}
 	return input;
@@ -29,8 +66,8 @@ string Calculation::SetVariables(string input) // Метод, предоставляющий пользов
 string Calculation::Parsing(string input)
 {
 	string output = ""; //Строка для хранения выражения
-    stack<char> operStack; //Стек для хранения операторов
-
+    Stack<char> operStack; //Стек для хранения операторов
+	bool flag = false;
 	for (int i = 0; i < input.length(); i++) // Проверка на наличие неизвестных символов
     {
 		if((!IsVariable(input[i])) && (!IsDelimeter(input[i])) && (!isdigit(input[i])) && (!IsOperator(input[i])))
@@ -67,29 +104,53 @@ string Calculation::Parsing(string input)
             else if (input[i] == ')') //Если символ - закрывающая скобка
             {
                 //Выписываем все операторы до открывающей скобки в строку
-                char s = operStack.top();
+                char s = operStack.gettop();
 				operStack.pop();
 
                 while (s != '(')
                 {
                     output += s;
 					output += " ";
-                    s = operStack.top();
+                    s = operStack.gettop();
 					operStack.pop();
                 }
+            }else if (input[i] == '|' && !flag) //Если символ - открывающая скобка
+			{
+                operStack.push(input[i]); //Записываем её в стек
+				flag = true;
+			}
+            else if (input[i] == '|' && flag) //Если символ - закрывающая скобка
+            {
+                //Выписываем все операторы до открывающей скобки в строку
+                char s = operStack.gettop();
+				operStack.pop();
+
+				while (s != '|')
+                {
+                    output += s;
+					output += " ";
+                    s = operStack.gettop();
+					operStack.pop();
+                }
+                operStack.push(input[i]); //Если стек пуст, или же приоритет оператора выше - добавляем операторов на вершину стека
+				flag = false;
             }
             else //Если любой другой оператор
             {
-				if (input.length() == i+1 || (IsOperator(input[i+1]) && (input[i+1] != '(') && (input[i+1] != ')')))
+				if (input.length() == i+1 || (IsOperator(input[i+1]) && (input[i+1] != '(') && (input[i+1] != ')') && (input[i+1] != '|') && !((input[i]=='-' || input[i]=='+') && (input[i+1]=='-' || input[i+1]=='+')) ))
 					Error(2);
 				if (!operStack.empty()) //Если в стеке есть элементы
-                    if (GetPriority(input[i]) <= GetPriority(operStack.top())){ //И если приоритет нашего оператора меньше или равен приоритету оператора на вершине стека
-                        output += operStack.top(); //То добавляем последний оператор из стека в строку с выражением
-						output += " ";
-						operStack.pop();
-					}
+						if (GetPriority(input[i]) <= GetPriority(operStack.gettop()) ){ //И если приоритет нашего оператора меньше или равен приоритету оператора на вершине стека
+							output += operStack.gettop(); //То добавляем последний оператор из стека в строку с выражением
+							output += " ";
+							operStack.pop();
+						}
                 operStack.push(input[i]); //Если стек пуст, или же приоритет оператора выше - добавляем операторов на вершину стека
-
+				while(input.length() > i+1 && ((input[i+1] =='-' || input[i+1]=='+') && (operStack.gettop() =='-' || operStack.gettop() =='+')) ) // Обработчик исключений типа --++-+-+-
+				{
+					operStack.push(input[i]);
+					i++;
+				}
             }
         }
     }
@@ -98,7 +159,7 @@ string Calculation::Parsing(string input)
 
     //Когда прошли по всем символам, выкидываем из стека все оставшиеся там операторы в строку
 	while (!operStack.empty()){
-        output += operStack.top();
+        output += operStack.gettop();
 		output += " ";
 		operStack.pop();
 	
@@ -109,7 +170,7 @@ string Calculation::Parsing(string input)
 double Calculation::Counting(string input)
 {
 	double result = 0; //Результат
-    stack<double> temp; //Временный стек для решения
+    Stack<double> temp; //Временный стек для решения
 
     for (int i = 0; i < input.length(); i++) //Для каждого символа в строке
     {
@@ -130,11 +191,11 @@ double Calculation::Counting(string input)
         else if (IsOperator(input[i])) //Если символ - оператор
         {
             //Берем два последних значения из стека
-            double a = temp.top(); 
+            double a = temp.gettop(); 
 			temp.pop();
 			if(!temp.empty())
 			{
-				double b = temp.top();
+				double b = temp.gettop();
 				temp.pop();
 				switch (input[i]) //И производим над ними действие, согласно оператору
 				{ 
@@ -145,13 +206,20 @@ double Calculation::Counting(string input)
 					case '^': result = pow(b,a); break;
 				}
 				temp.push(result); //Результат вычисления записываем обратно в стек
-			}else
+			}
+			else if(input[i] == '|')
+				temp.push(abs(a));
+			else if(input[i] == '-')
+				temp.push(a*(-1));
+			else if(input[i] == '+')
+				temp.push(a);
+			else
 				Error(2);
             
         }
     }
 	if(!temp.empty())
-		return temp.top(); //Забираем результат всех вычислений из стека и возвращаем его
+		return temp.gettop(); //Забираем результат всех вычислений из стека и возвращаем его
 	else
 		Error(1);
 }
@@ -172,6 +240,7 @@ void Calculation::Error(const int key)
 		case 2: _return = "ERROR: expression is not correct!"; break;
 		case 3: _return = "ERROR: division by zero is not allowed!"; break;
 		case 4: _return = "ERROR: unknow operator!"; break;
+		case 5: _return = "ERROR: unknow varibale!"; break;
 		default: _return = "ERROR"; break;
 	}
 	cout << _return << endl;
@@ -186,7 +255,7 @@ bool Calculation::IsVariable(char c)
 }
 bool Calculation::IsOperator(char с)
 {
-	string str = "+-/*^()";
+	string str = "+-/*^()|";
     if ((str.find(с) != -1))
         return true;
     return false;
@@ -195,13 +264,14 @@ int Calculation::GetPriority(char s)
 {
     switch (s)
     {
-        case '(': return 0;
-        case ')': return 1;
-        case '+': return 2;
-        case '-': return 3;
-        case '*': return 4;
-        case '/': return 4;
-        case '^': return 5;
-        default: return 6;
+        case '|': return 0;
+        case '(': return 1;
+		case ')': return 2;
+        case '+': return 3;
+        case '-': return 4;
+        case '*': return 5;
+        case '/': return 6;
+        case '^': return 7;
+        default: return 8;
     }
 }
