@@ -137,7 +137,7 @@ string Calculation::Parsing(string input)
             }
             else //Если любой другой оператор
             {
-				if (input.length() == i+1 || (IsOperator(input[i+1]) && (input[i+1] != '(') && (input[i+1] != ')') && (input[i+1] != '|') && !((input[i]=='-' || input[i]=='+') && (input[i+1]=='-' || input[i+1]=='+')) ))
+				if (input.length() == i+1 || (IsOperator(input[i+1]) && (input[i+1] != '(') && (input[i+1] != ')') ))
 					Error(2);
 				if (!operStack.empty()) //Если в стеке есть элементы
 						if (GetPriority(input[i]) <= GetPriority(operStack.gettop()) ){ //И если приоритет нашего оператора меньше или равен приоритету оператора на вершине стека
@@ -146,11 +146,6 @@ string Calculation::Parsing(string input)
 							operStack.pop();
 						}
                 operStack.push(input[i]); //Если стек пуст, или же приоритет оператора выше - добавляем операторов на вершину стека
-				while(input.length() > i+1 && ((input[i+1] =='-' || input[i+1]=='+') && (operStack.gettop() =='-' || operStack.gettop() =='+')) ) // Обработчик исключений типа --++-+-+-
-				{
-					operStack.push(input[i]);
-					i++;
-				}
             }
         }
     }

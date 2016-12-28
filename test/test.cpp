@@ -129,10 +129,15 @@ TEST(Calculation, can_unar_op2)
 	Calculation calculation;
 	EXPECT_EQ(calculation.Calculate("+1"),1);
 }
-TEST(Calculation, can_unar_combo1)
+TEST(Calculation, throw_112234214)
 {
 	Calculation calculation;
-	EXPECT_EQ(calculation.Calculate("-+-1"),1);
+	ASSERT_ANY_THROW(calculation.Calculate("-+-1"));
+}
+TEST(Calculation, throw_11233214)
+{
+	Calculation calculation;
+	ASSERT_ANY_THROW(calculation.Calculate("--1"));
 }
 TEST(Calculation, CanCombo_6)
 {
